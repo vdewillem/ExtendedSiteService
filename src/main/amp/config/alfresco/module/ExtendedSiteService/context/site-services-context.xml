@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!DOCTYPE beans PUBLIC "-//SPRING//DTD BEAN 2.0//EN" "http://www.springframework.org/dtd/spring-beans-2.0.dtd">
+
+<beans>
+    <bean id="siteService" class="eu.xenit.repo.site.ExtendedSiteServiceImpl" parent="baseSiteService">
+        <property name="siteGroups" ref="sitegroups" />
+        <property name="permissionService2" ref="PermissionService"/>
+    </bean>
+
+    <bean id="sitegroups" class="java.util.ArrayList">
+        <constructor-arg>
+            <list>
+                <ref bean="sitegroups.GROUP_ALFRESCOSITES_ADMIN" />
+            </list>
+        </constructor-arg>
+    </bean>
+
+    <bean id="sitegroups.GROUP_ALFRESCOSITES_ADMIN"  class="eu.xenit.repo.site.groups.AllSiteGroup">
+        <property name="name" value="GROUP_ALFRESCOSITES_ADMIN"/>
+        <property name="role" value="SiteManager"/>
+        <property name="authorityService" ref="authorityService"/>
+    </bean>
+
+</beans>
