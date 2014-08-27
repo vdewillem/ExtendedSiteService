@@ -2,22 +2,32 @@ package eu.xenit.repo.site;
 
 import eu.xenit.repo.site.groups.SiteGroup;
 import org.alfresco.repo.security.permissions.impl.AccessPermissionImpl;
+import org.alfresco.repo.site.SiteMemberInfoImpl;
 import org.alfresco.repo.site.SiteServiceImpl;
 import org.alfresco.service.cmr.repository.NodeRef;
 import org.alfresco.service.cmr.security.AccessPermission;
 import org.alfresco.service.cmr.security.PermissionService;
 import org.alfresco.service.cmr.site.SiteInfo;
+import org.alfresco.service.cmr.site.SiteMemberInfo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+
+import static java.util.Arrays.asList;
 
 public class ExtendedSiteServiceImpl extends SiteServiceImpl
 {
-    private static final Log logger = LogFactory.getLog(ExtendedSiteServiceImpl.class);
+    private final static Logger logger = LoggerFactory.getLogger(ExtendedSiteServiceImpl.class);
+
+    private final static List<String> siteRoles = asList("SiteConsumer", "SiteCollaborator", "SiteManager");
 
     private List<SiteGroup> siteGroups = new ArrayList<SiteGroup>();
 
@@ -66,6 +76,44 @@ public class ExtendedSiteServiceImpl extends SiteServiceImpl
         }
 
         return members;
+    }
+
+    @Override
+    public SiteMemberInfo getMembersRoleInfo(String shortName, String authorityName) {
+        if (!authorityName.startsWith("GROUP_") && !authorityName.startsWith("AUTHORITY_")) {
+            // return the highest ranking membership role we can find
+            SiteGroup bestGroup = null;
+            for(SiteGroup siteGroup : this.siteGroups){
+                if(siteGroup.isRelevant(shortName, null) && siteGroup.isMember(authorityName)){
+                    final String role = siteGroup.getRole();
+                    if ("SiteManager".equals(role)) {
+                        // can't get better than this
+                        return new SiteMemberInfoImpl(authorityName, role, true);
+                    }
+                    bestGroup = bestOf(bestGroup, siteGroup);
+                }
+            }
+
+            if (bestGroup != null) {
+                return new SiteMemberInfoImpl(authorityName, bestGroup.getRole(), true);
+            }
+        }
+
+        return super.getMembersRoleInfo(shortName, authorityName);
+    }
+
+    private SiteGroup bestOf(SiteGroup a, SiteGroup b) {
+        if (a == null && b == null) {
+            return null;
+        }
+        if (a == null) {
+            return b;
+        }
+        if (b == null) {
+            return a;
+        }
+
+        return Integer.compare(siteRoles.indexOf(a.getRole()), siteRoles.indexOf(b.getRole())) == 1 ? a : b;
     }
 
     public void expand(NodeRef nodeRef)
